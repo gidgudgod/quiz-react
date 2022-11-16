@@ -7,13 +7,13 @@ import _ from 'lodash';
 
 function QuestionScreen() {
   const [isPending, startTransition] = useTransition();
-  const [questions, setQuestions] = useState(() => []);
+  const [questions, setQuestions] = useState([]);
   const [isSubmmited, setIsSubmmited] = useState(false);
   const [restart, setRestart] = useState(false);
   const [correctAnswerCount, setCorrectAnswerCount] = useState(0);
   const [message, setMessage] = useState('');
   const fade = useSpring({
-    opacity: questions != [] ? 1 : 0,
+    opacity: questions > 0 ? 1 : 0,
   });
 
   useEffect(() => {
@@ -118,11 +118,12 @@ function QuestionScreen() {
   });
 
   return (
-    <animated.div
-      style={fade}
-      className="mx-auto flex max-w-5xl flex-col justify-center gap-3 p-14 "
-    >
-      {questions == null ? <h2>Loading</h2> : questionElements}
+    <animated.div className="mx-auto flex max-w-5xl flex-col justify-center gap-3 p-14 ">
+      {questions.length <= 0 ? (
+        <h2 className="font-bold">Loading...</h2>
+      ) : (
+        questionElements
+      )}
 
       {message && !isSubmmited ? (
         <p className="text-center text-red-500">{message}</p>
