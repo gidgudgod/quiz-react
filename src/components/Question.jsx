@@ -4,13 +4,21 @@ import { useEffect, useState } from 'react';
 import { animated, useSpring } from '@react-spring/web';
 
 function Question(props) {
-  const answerElements = props.answers.map((answer) => {
+  const answers = props.answers;
+  const [userAnswer, setUserAnswer] = useState(() => '');
+
+  const handleClickAnswer = (id, answer) => {
+    setUserAnswer(answer);
+    props.setUserAnswer({ id: id, user_answer: answer }); // set user answer to parent
+  };
+
+  const answerElements = answers.map((answer) => {
     if (!props.correctAnswer) {
-      if (answer !== props.userAnswer) {
+      if (answer !== userAnswer) {
         return (
           <div
             key={nanoid()}
-            onClick={() => props.setAnswer(props.id, answer)}
+            onClick={() => handleClickAnswer(props.id, answer)}
             className="cursor-pointer whitespace-nowrap rounded-full border border-blueNavy bg-white px-4 py-1.5  text-center text-sm font-semibold text-blueNavy hover:bg-slate-300/80"
           >
             {he.decode(answer)}
@@ -20,7 +28,7 @@ function Question(props) {
         return (
           <div
             key={nanoid()}
-            onClick={() => props.setAnswer(props.id, '')}
+            onClick={() => handleClickAnswer(props.id, '')}
             className="cursor-pointer whitespace-nowrap rounded-full bg-purpleLight px-4 py-1.5 text-center text-sm font-semibold text-blueNavy hover:bg-slate-300/80"
           >
             {he.decode(answer)}
@@ -59,6 +67,7 @@ function Question(props) {
       );
     }
   });
+
   return (
     <section className="grid gap-4 overflow-auto ">
       <h2 className="text-xl font-bold text-blueNavy">

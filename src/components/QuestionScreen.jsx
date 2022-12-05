@@ -8,7 +8,9 @@ import _ from 'lodash';
 function QuestionScreen() {
   const [isPending, startTransition] = useTransition();
   const [questions, setQuestions] = useState([]);
-  const [isSubmmited, setIsSubmmited] = useState(false);
+  const [questionElements, setQuestionElements] = useState('');
+  const [userAnswers, setUserAnswers] = useState(() => []);
+  const [isSubmmited, setIsSubmmited] = useState(() => false);
   const [restart, setRestart] = useState(false);
   const [correctAnswerCount, setCorrectAnswerCount] = useState(0);
   const [message, setMessage] = useState('');
@@ -29,23 +31,19 @@ function QuestionScreen() {
             },
           });
           const data = await res.data.results;
-
-          setQuestions(await data);
-          setQuestions((prevQuestions) => {
-            return prevQuestions.map((question) => {
-              return {
-                ...question,
-                user_answer: '',
-                id: nanoid(),
-                answers: _.shuffle([
-                  ...question.incorrect_answers,
-                  question.correct_answer,
-                ]),
-              };
-            });
+          const shuffledQuestion = data.map((question) => {
+            return {
+              ...question,
+              id: nanoid(),
+              answers: _.shuffle([
+                ...question.incorrect_answers,
+                question.correct_answer,
+              ]),
+            };
           });
+          setQuestions(shuffledQuestion);
+
           setIsSubmmited(false);
-          console.log(await questions);
         } catch (error) {
           console.log(error);
         }
@@ -55,29 +53,38 @@ function QuestionScreen() {
     });
   }, [restart]);
 
-  function setAnswer(id, answer) {
-    setQuestions((prevQuestions) => {
-      return prevQuestions.map((question) => {
-        return question.id === id
-          ? { ...question, user_answer: answer }
-          : question;
+  useEffect(() => {
+    const initialUserAnswers = [];
+    for (const q of questions) {
+      initialUserAnswers.push({ id: q.id, user_answer: '' });
+    }
+    setUserAnswers(initialUserAnswers);
+  }, [questions]);
+
+  function setUserAnswer(userAnswer) {
+    setUserAnswers((prevUserAnswers) => {
+      return prevUserAnswers.map((answer) => {
+        return answer.id === userAnswer.id
+          ? { ...answer, user_answer: userAnswer.user_answer }
+          : answer;
       });
     });
   }
 
   function checkAnswer() {
-    const allQuestionAnswered = questions.every(
-      (question) => question.user_answer != null && question.user_answer != ''
+    const isAllQuestionAnswered = userAnswers.every(
+      (answer) => answer.user_answer != null && answer.user_answer != ''
     );
-    if (allQuestionAnswered) {
+    if (isAllQuestionAnswered) {
       let correctAnswerCount = 0;
-      for (const question of questions) {
-        if (question.user_answer === question.correct_answer) {
+      for (let i = 0; i < questions.length; i++) {
+        if (userAnswers[i].user_answer === questions[i].correct_answer) {
           correctAnswerCount++;
         }
       }
-      setCorrectAnswerCount(correctAnswerCount);
       setIsSubmmited(true);
+
+      setCorrectAnswerCount(correctAnswerCount);
     } else {
       console.log('Please answer all questions');
       setMessage('Please answer all questions');
@@ -88,49 +95,51 @@ function QuestionScreen() {
   }
 
   function newQuiz() {
+    setQuestions([]);
     setRestart((prevRestart) => !prevRestart);
   }
 
-  const questionElements = questions.map((question) => {
-    if (!isSubmmited) {
-      return (
-        <Question
-          key={nanoid()}
-          id={question.id}
-          question={question.question}
-          answers={question.answers}
-          userAnswer={question.user_answer}
-          setAnswer={setAnswer}
-        />
-      );
-    } else {
-      return (
-        <Question
-          key={nanoid()}
-          id={question.id}
-          question={question.question}
-          answers={question.answers}
-          userAnswer={question.user_answer}
-          correctAnswer={question.correct_answer}
-        />
-      );
-    }
-  });
+  useEffect(() => {
+    setQuestionElements(
+      questions.map((question, i) => {
+        if (!isSubmmited) {
+          return (
+            <Question
+              key={nanoid()}
+              id={question.id}
+              question={question.question}
+              answers={question.answers}
+              setUserAnswer={setUserAnswer}
+            />
+          );
+        } else {
+          return (
+            <Question
+              key={nanoid()}
+              id={question.id}
+              question={question.question}
+              answers={question.answers}
+              userAnswer={userAnswers[i].user_answer}
+              correctAnswer={question.correct_answer}
+            />
+          );
+        }
+      })
+    );
+  }, [isSubmmited, questions]);
+
+  if (questions.length <= 0) {
+    return <h2 className="font-bold">Loading...</h2>;
+  }
 
   return (
     <animated.div className="mx-auto flex max-w-5xl flex-col justify-center gap-3 p-14 ">
-      {questions.length <= 0 ? (
-        <h2 className="font-bold">Loading...</h2>
-      ) : (
-        questionElements
-      )}
-
+      {questionElements}
       {message && !isSubmmited ? (
         <p className="text-center text-red-500">{message}</p>
       ) : (
         ''
       )}
-
       <div className="mt-8 flex flex-row items-center justify-center gap-6">
         {isSubmmited ? (
           <h2 className="text-lg font-bold text-blueNavy">
